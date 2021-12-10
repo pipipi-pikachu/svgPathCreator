@@ -1,0 +1,63 @@
+.svgEditor {
+  width: 100%;
+  height: 100%;
+  background-color: #d8d9dd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  user-select: none;
+}
+.canvas {
+  width: 96%;
+  height: 92%;
+  position: relative;
+  border: 1px solid #cfd0d3;
+  background-color: #f2f2f2;
+  overflow: hidden;
+  line-height: 0;
+}
+.svgWrapper {
+  padding: 20px;
+  position: absolute;
+}
+.svg {
+  background: #fff;
+  overflow: visible !important;
+  border: 1px solid #e5e5e5;
+
+  .path {
+    fill: none;
+    stroke: #555;
+    stroke-width: 4px;
+    stroke-linecap: round;
+  }
+  .grid {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 1px;
+  }
+  .point {
+    cursor: pointer;
+    fill: #555;
+    opacity: .35;
+
+    &.active {
+      fill: #2b579b;
+      opacity: 1;
+    }
+  }
+  .anchor {
+    opacity: .35;
+  }
+  .anchorLine {
+    stroke: #555;
+    stroke-width: 1px;
+    stroke-dasharray: 5 5;
+    pointer-events: none;
+  }
+  .anchorPoint {
+    cursor: pointer;
+    fill: #555;
+  }
+}

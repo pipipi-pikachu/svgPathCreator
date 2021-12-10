@@ -1,0 +1,49 @@
+.pathTypeSetting {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  padding: 10px 15px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, .5);
+  box-shadow: 0 2px 16px 0 rgba(50, 50, 50, 0.25);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+.radio {
+  display: flex;
+  align-items: center;
+}
+.toggle {
+  width: 26px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.configs {
+  width: 100%;
+  margin-top: 15px;
+}
+.configsLine {
+  display: flex;
+  align-items: center;
+
+  & + .configsLine {
+    margin-top: 10px;
+  }
+}
+.configItem {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+.configLabel {
+  width: 32px;
+}
+.inputNumber {
+  width: 68px;
+}
