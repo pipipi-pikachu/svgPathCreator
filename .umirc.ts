@@ -13,4 +13,5 @@ export default defineConfig({
     'primary-color': '#2b579b',
   },
   mfsu: {},
+  publicPath: './',
 })
