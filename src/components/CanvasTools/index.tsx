@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { IndexModelState, useDispatch, useSelector } from 'umi'
 import { useSetState } from 'ahooks'
 import classNames from 'classnames'
 import { saveAs } from 'file-saver'
@@ -15,34 +16,19 @@ import {
 
 interface CanvasToolsProps {
   pathString: string;
-  canvasWidth: number;
-  canvasHeight: number;
-  gridSize: number;
-  grid: boolean;
-  scale: number;
-  setGrid: React.Dispatch<React.SetStateAction<boolean>>;
-  setCanvasWidth: React.Dispatch<React.SetStateAction<number>>;
-  setCanvasHeight: React.Dispatch<React.SetStateAction<number>>;
-  setGridSize: React.Dispatch<React.SetStateAction<number>>;
-  setPosition: React.Dispatch<React.SetStateAction<{ left: number; top: number }>>;
-  setScale: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export default function CanvasTools(props: CanvasToolsProps) {
   const {
-    pathString,
     canvasWidth,
     canvasHeight,
     gridSize,
     grid,
     scale,
-    setGrid,
-    setCanvasWidth,
-    setCanvasHeight,
-    setGridSize,
-    setPosition,
-    setScale,
-  } = props
+  } = useSelector(({ index }: { index: IndexModelState }) => index)
+  const dispatch = useDispatch()
+
+  const { pathString } = props
 
   const [configs, setConfigs] = useSetState({
     width: 0,
@@ -64,22 +50,24 @@ export default function CanvasTools(props: CanvasToolsProps) {
   const [helpVisible, setHelpVisible] = useState(false)
 
   function increaseScale() {
-    setScale(prev => {
-      const scale = prev + 0.1
-      return scale > 2 ? 2 : scale
+    const newScale = scale + 0.1 > 2 ? 2 : scale + 0.1
+    dispatch({
+      type: 'index/save',
+      payload: { scale: newScale },
     })
   }
   function reduceScale() {
-    setScale(prev => {
-      const scale = prev - 0.1
-      return scale < 0.5 ? 0.5 : scale
+    const newScale = scale - 0.1 < 0.5 ? 0.5 : scale - 0.1
+    dispatch({
+      type: 'index/save',
+      payload: { scale: newScale },
     })
   }
 
   function resetPosition() {
-    setPosition({
-      top: 0,
-      left: 0,
+    dispatch({
+      type: 'index/save',
+      payload: { canvasPosition: [0, 0] },
     })
   }
 
@@ -107,7 +95,10 @@ export default function CanvasTools(props: CanvasToolsProps) {
         <ExpandOutlined 
           className={style.icon} 
           onClick={() => {
-            setScale(1)
+            dispatch({
+              type: 'index/save',
+              payload: { scale: 1 },
+            })
             resetPosition()
           }}
         />
@@ -125,10 +116,15 @@ export default function CanvasTools(props: CanvasToolsProps) {
         visible={canvasSizeSettingVisible} 
         width={540}
         onOk={() => {
-          setCanvasWidth(configs.width)
-          setCanvasHeight(configs.height)
-          setGridSize(configs.gridSize)
-          setGrid(configs.grid)
+          dispatch({
+            type: 'index/save',
+            payload: {
+              canvasWidth: configs.width,
+              canvasHeight: configs.height,
+              gridSize: configs.gridSize,
+              grid: configs.grid,
+            },
+          })
           setCanvasSizeSettingVisible(false)
         }} 
         onCancel={() => {

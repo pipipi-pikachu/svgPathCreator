@@ -1,4 +1,5 @@
 import { MouseEvent, useMemo, useRef, useState } from 'react'
+import { IndexModelState, useDispatch, useSelector } from 'umi'
 import { useClickAway, useKeyPress } from 'ahooks'
 import classNames from 'classnames'
 import style from './index.less'
@@ -10,23 +11,12 @@ const MENU_ID = 'blahblah';
 import { PathItem, PointItem, PointWithAnchorsItem } from '@/types'
 
 interface SVGEditorProps {
-  canvasWidth: number;
-  canvasHeight: number;
-  gridSize: number;
-  grid: boolean;
-  activePoint: [number, number];
   activePathItem: PathItem;
-  paths: PathItem[];
   pathString: string;
-  position: { left: number; top: number };
-  scale: number,
-  setActivePoint: React.Dispatch<React.SetStateAction<[number, number]>>;
   setPathItem: (pathItem: PathItem) => void;
-  setPaths: React.Dispatch<React.SetStateAction<PathItem[]>>;
   setPointPosition: (x: number, y: number) => void;
   setQuadraticPosition: (x: number, y: number) => void;
   setCubicPosition: (x: number, y: number, anchor: 0 | 1) => void;
-  setPosition: React.Dispatch<React.SetStateAction<{ left: number; top: number }>>;
 }
 
 export default function SVGEditor(props: SVGEditorProps) {
@@ -35,19 +25,20 @@ export default function SVGEditor(props: SVGEditorProps) {
     canvasHeight,
     gridSize,
     grid,
-    activePoint,
-    activePathItem,
+    activePointIndex,
     paths,
-    pathString,
-    position,
+    canvasPosition,
     scale,
-    setActivePoint,
+  } = useSelector(({ index }: { index: IndexModelState }) => index)
+  const dispatch = useDispatch()
+
+  const {
+    activePathItem,
+    pathString,
     setPathItem,
-    setPaths,
     setPointPosition,
     setQuadraticPosition,
     setCubicPosition,
-    setPosition,
   } = props
 
   const svgRef = useRef<SVGSVGElement>(null)
@@ -150,7 +141,7 @@ export default function SVGEditor(props: SVGEditorProps) {
   }
 
   function pushNewPoint(newPoint: PointItem) {
-    const path = paths[activePoint[0]]
+    const path = paths[activePointIndex[0]]
     const newPoints = [...path.points, newPoint]
     const newPathItem = {
       ...path,
@@ -158,7 +149,12 @@ export default function SVGEditor(props: SVGEditorProps) {
     }
 
     setPathItem(newPathItem)
-    setActivePoint([activePoint[0], newPoints.length - 1])
+    dispatch({
+      type: 'index/save',
+      payload: {
+        activePointIndex: [activePointIndex[0], newPoints.length - 1],
+      },
+    })
   }
 
   function addPoint(e: MouseEvent) {
@@ -168,14 +164,13 @@ export default function SVGEditor(props: SVGEditorProps) {
 
   function addQuadraticPoint(e: MouseEvent) {
     const { x, y } = getMousePosition(e)
-    const activePointIndex = activePoint[1]
 
     const newPoint = {
       x,
       y,
       q: {
-        x: (x + activePathItem.points[activePointIndex].x) / 2,
-        y: (y + activePathItem.points[activePointIndex].y) / 2,
+        x: (x + activePathItem.points[activePointIndex[1]].x) / 2,
+        y: (y + activePathItem.points[activePointIndex[1]].y) / 2,
       }
     }
     pushNewPoint(newPoint)
@@ -183,18 +178,17 @@ export default function SVGEditor(props: SVGEditorProps) {
 
   function addCubicPoint(e: MouseEvent) {
     const { x, y } = getMousePosition(e)
-    const activePointIndex = activePoint[1]
 
     const newPoint = {
       x,
       y,
       c: [{
-        x: (x + activePathItem.points[activePointIndex].x - 50) / 2,
-        y: (y + activePathItem.points[activePointIndex].y) / 2,
+        x: (x + activePathItem.points[activePointIndex[1]].x - 50) / 2,
+        y: (y + activePathItem.points[activePointIndex[1]].y) / 2,
       },
       {
-        x: (x + activePathItem.points[activePointIndex].x + 50) / 2,
-        y: (y + activePathItem.points[activePointIndex].y) / 2,
+        x: (x + activePathItem.points[activePointIndex[1]].x + 50) / 2,
+        y: (y + activePathItem.points[activePointIndex[1]].y) / 2,
       }],
     }
     pushNewPoint(newPoint)
@@ -226,20 +220,30 @@ export default function SVGEditor(props: SVGEditorProps) {
       width: 4,
       fill: '#000',
     }
-    setPaths(prev => [...prev, newPath])
-    setActivePoint([paths.length, 0])
+    dispatch({
+      type: 'index/save',
+      payload: {
+        paths: [...paths, newPath],
+        activePointIndex: [paths.length, 0],
+      },
+    })
   }
 
   function removeActivePoint() {
-    if (activePoint[1] === 0) return
-    const path = paths[activePoint[0]]
-    const newPoints = path.points.filter((item, index) => index !== activePoint[1])
+    if (activePointIndex[1] === 0) return
+    const path = paths[activePointIndex[0]]
+    const newPoints = path.points.filter((item, index) => index !== activePointIndex[1])
     const newPathItem = {
       ...path,
       points: newPoints,
     }
 
-    setActivePoint([activePoint[0], newPoints.length - 1])
+    dispatch({
+      type: 'index/save',
+      payload: {
+        activePointIndex: [activePointIndex[0], newPoints.length - 1],
+      },
+    })
     setPathItem(newPathItem)
   }
 
@@ -248,17 +252,32 @@ export default function SVGEditor(props: SVGEditorProps) {
   })
 
   function startDraggingPoint(position: [number, number]) {
-    setActivePoint(position)
+    dispatch({
+      type: 'index/save',
+      payload: {
+        activePointIndex: position,
+      },
+    })
     setDraggedPoint(true)
   }
 
   function startDraggedQuadratic(position: [number, number]) {
-    setActivePoint(position)
+    dispatch({
+      type: 'index/save',
+      payload: {
+        activePointIndex: position,
+      },
+    })
     setDraggedQuadratic(true)
   }
 
   function startDraggedCubic(position: [number, number], anchor: false | 0 | 1) {
-    setActivePoint(position)
+    dispatch({
+      type: 'index/save',
+      payload: {
+        activePointIndex: position,
+      },
+    })
     setDraggedCubic(anchor)
   }
 
@@ -289,8 +308,8 @@ export default function SVGEditor(props: SVGEditorProps) {
     const startPageX = e.pageX
     const startPageY = e.pageY
 
-    const originLeft = position.left
-    const originTop = position.top
+    const originLeft = canvasPosition[0]
+    const originTop = canvasPosition[1]
 
     document.onmousemove = e => {
       if (!draggedSvg || !spaceKeyActive) return
@@ -301,9 +320,11 @@ export default function SVGEditor(props: SVGEditorProps) {
       const moveX = currentPageX - startPageX
       const moveY = currentPageY - startPageY
 
-      setPosition({
-        left: originLeft + moveX,
-        top: originTop + moveY,
+      dispatch({
+        type: 'index/save',
+        payload: {
+          canvasPosition: [originLeft + moveX, originTop + moveY],
+        },
       })
     }
     document.onmouseup = () => {
@@ -431,8 +452,8 @@ export default function SVGEditor(props: SVGEditorProps) {
         <div 
           className={style.svgWrapper} 
           style={{
-            left: position.left + 'px',
-            top: position.top + 'px',
+            left: canvasPosition[0] + 'px',
+            top: canvasPosition[1] + 'px',
           }}
           ref={svgWrapperRef}
           onMouseDown={e => startDraggingSvg(e)}
@@ -465,7 +486,7 @@ export default function SVGEditor(props: SVGEditorProps) {
                       <circle
                         className={classNames(style.point, {
                           [style.start]: pointIndex === 0,
-                          [style.active]: pathIndex === activePoint[0] && pointIndex === activePoint[1],
+                          [style.active]: pathIndex === activePointIndex[0] && pointIndex === activePointIndex[1],
                         })}
                         cx={point.x}
                         cy={point.y}

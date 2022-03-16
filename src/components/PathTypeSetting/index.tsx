@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
+import { IndexModelState, useDispatch, useSelector } from 'umi'
 import style from './index.less'
 import { Radio, InputNumber, Divider, Checkbox } from 'antd'
-import { CaretDownOutlined, CaretLeftOutlined } from '@ant-design/icons'
+import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 
 import { PathItem, PointItem } from '@/types'
 
 interface PathTypeSettingProps {
-  activePoint: [number, number];
   activePathItem: PathItem;
   activePointItem: PointItem;
   setPathItem: (pathItem: PathItem) => void;
@@ -17,8 +17,10 @@ interface PathTypeSettingProps {
 }
 
 export default function PathTypeSetting(props: PathTypeSettingProps) {
+  const { activePointIndex } = useSelector(({ index }: { index: IndexModelState }) => index)
+  const dispatch = useDispatch()
+
   const {
-    activePoint,
     activePathItem,
     activePointItem,
     setPathItem,
@@ -38,44 +40,44 @@ export default function PathTypeSetting(props: PathTypeSettingProps) {
   }, [activePointItem])
 
   function setPathType(type: string) {
-    const activePointIndex = activePoint[1]
-    if (activePointIndex === 0) return
+    const index = activePointIndex[1]
+    if (index === 0) return
 
     const newPoints: PointItem[] = JSON.parse(JSON.stringify(activePathItem.points))
     if (type === 'l') {
-      newPoints[activePointIndex] = {
-        x: newPoints[activePointIndex].x,
-        y: newPoints[activePointIndex].y,
+      newPoints[index] = {
+        x: newPoints[index].x,
+        y: newPoints[index].y,
       }
     }
     else if (type === 'q') {
-      newPoints[activePointIndex] = {
-        x: newPoints[activePointIndex].x,
-        y: newPoints[activePointIndex].y,
+      newPoints[index] = {
+        x: newPoints[index].x,
+        y: newPoints[index].y,
         q: {
-          x: (newPoints[activePointIndex].x + newPoints[activePointIndex - 1].x) / 2,
-          y: (newPoints[activePointIndex].y + newPoints[activePointIndex - 1].y) / 2,
+          x: (newPoints[index].x + newPoints[index - 1].x) / 2,
+          y: (newPoints[index].y + newPoints[index - 1].y) / 2,
         },
       }
     }
     else if (type === 'c') {
-      newPoints[activePointIndex] = {
-        x: newPoints[activePointIndex].x,
-        y: newPoints[activePointIndex].y,
+      newPoints[index] = {
+        x: newPoints[index].x,
+        y: newPoints[index].y,
         c: [{
-          x: (newPoints[activePointIndex].x + newPoints[activePointIndex - 1].x - 50) / 2,
-          y: (newPoints[activePointIndex].y + newPoints[activePointIndex - 1].y) / 2,
+          x: (newPoints[index].x + newPoints[index - 1].x - 50) / 2,
+          y: (newPoints[index].y + newPoints[index - 1].y) / 2,
         },
         {
-          x: (newPoints[activePointIndex].x + newPoints[activePointIndex - 1].x + 50) / 2,
-          y: (newPoints[activePointIndex].y + newPoints[activePointIndex - 1].y) / 2,
+          x: (newPoints[index].x + newPoints[index - 1].x + 50) / 2,
+          y: (newPoints[index].y + newPoints[index - 1].y) / 2,
         }],
       }
     }
     else if (type === 'a') {
-      newPoints[activePointIndex] = {
-        x: newPoints[activePointIndex].x,
-        y: newPoints[activePointIndex].y,
+      newPoints[index] = {
+        x: newPoints[index].x,
+        y: newPoints[index].y,
         a: {
           rx: 50,
           ry: 50,
@@ -200,7 +202,7 @@ export default function PathTypeSetting(props: PathTypeSettingProps) {
   return (
     <div className={style.pathTypeSetting}>
       <div className={style.radio}>
-        <Radio.Group value={activePathType} disabled={activePoint[1] === 0} onChange={ e => setPathType(e.target.value) }>
+        <Radio.Group value={activePathType} disabled={activePointIndex[1] === 0} onChange={ e => setPathType(e.target.value) }>
           <Radio value="l">直线</Radio>
           <Radio value="q">二次贝塞尔曲线</Radio>
           <Radio value="c">三次贝塞尔曲线</Radio>
@@ -209,7 +211,7 @@ export default function PathTypeSetting(props: PathTypeSettingProps) {
 
         <Divider type="vertical" />
 
-        <div className={style.toggle} onClick={() => setOpen(!open)}>{ open ? <CaretDownOutlined /> : <CaretLeftOutlined /> }</div>
+        <div className={style.toggle} onClick={() => setOpen(!open)}>{ open ? <CaretDownOutlined /> : <CaretRightOutlined /> }</div>
       </div>
 
       {

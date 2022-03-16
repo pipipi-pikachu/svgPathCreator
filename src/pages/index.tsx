@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useSelector, useDispatch, IndexModelState } from 'umi'
 import style from './index.less'
 import SVGEditor from '@/components/SVGEditor'
 import CanvasTools from '@/components/CanvasTools'
@@ -7,24 +8,12 @@ import PathTypeSetting from '@/components/PathTypeSetting'
 import { PathItem } from '@/types'
 
 export default function IndexPage() {
-  const [canvasWidth, setCanvasWidth] = useState(2000)
-  const [canvasHeight, setCanvasHeight] = useState(1000)
-  const [scale, setScale] = useState(1)
-  const [gridSize, setGridSize] = useState(20)
-  const [grid, setGrid] = useState(true)
-
-  const [closePath] = useState(false)
-  const [activePoint, setActivePoint] = useState<[number, number]>([0, 0])
-
-  const [paths, setPaths] = useState<PathItem[]>([
-    {
-      points: [{ x: 0, y: 0 }],
-      closePath: false,
-      color: '#000',
-      width: 4,
-      fill: '#000',
-    },
-  ])
+  const {
+    closePath,
+    activePointIndex,
+    paths,
+  } = useSelector(({ index }: { index: IndexModelState }) => index)
+  const dispatch = useDispatch()
 
   const pathString = useMemo(() => {
     let _path = ''
@@ -46,44 +35,44 @@ export default function IndexPage() {
   }, [paths, closePath])
 
   const activePathItem = useMemo(() => {
-    return paths[activePoint[0]]
-  }, [paths, activePoint])
+    return paths[activePointIndex[0]]
+  }, [paths, activePointIndex])
 
   const activePointItem = useMemo(() => {
-    return activePathItem.points[activePoint[1]]
-  }, [activePathItem, activePoint])
-
-  const [position, setPosition] = useState({
-    left: 0,
-    top: 0,
-  })
+    return activePathItem.points[activePointIndex[1]]
+  }, [activePathItem, activePointIndex])
 
   function setPathItem(pathItem: PathItem) {
-    setPaths(prev => prev.map((item, index) => activePoint[0] === index ? pathItem : item))
+    dispatch({
+      type: 'index/save',
+      payload: {
+        paths: paths.map((item, index) => activePointIndex[0] === index ? pathItem : item),
+      },
+    })
   }
 
   function setPointPosition(x: number, y: number) {
-    const path = paths[activePoint[0]]
+    const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
-      if (index === activePoint[1]) return { ...item, x, y }
+      if (index === activePointIndex[1]) return { ...item, x, y }
       return item
     })
     setPathItem({ ...path, points })
   }
 
   function setQuadraticPosition(x: number, y: number) {
-    const path = paths[activePoint[0]]
+    const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
-      if (index === activePoint[1]) return { ...item, q: { x, y } }
+      if (index === activePointIndex[1]) return { ...item, q: { x, y } }
       return item
     })
     setPathItem({ ...path, points })
   }
 
   function setCubicPosition(x: number, y: number, anchor: 0 | 1) {
-    const path = paths[activePoint[0]]
+    const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
-      if (index === activePoint[1]) {
+      if (index === activePointIndex[1]) {
         const c = item.c || []
         c[anchor] = { x, y }
         return { ...item, c }
@@ -115,9 +104,9 @@ export default function IndexPage() {
       if(value < 0) value = 0
       if(value > 360) value = 360
     }
-    const path = paths[activePoint[0]]
+    const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
-      if (index === activePoint[1]) {
+      if (index === activePointIndex[1]) {
         const a = item.a
         if (!a) return item
         a[key] = value
@@ -131,42 +120,19 @@ export default function IndexPage() {
   return (
     <div className={style.indexPage}>
       <SVGEditor
-        canvasWidth={canvasWidth}
-        canvasHeight={canvasHeight}
-        gridSize={gridSize}
-        grid={grid}
-        activePoint={activePoint}
         activePathItem={activePathItem}
-        paths={paths}
         pathString={pathString}
-        position={position}
-        scale={scale}
-        setActivePoint={setActivePoint}
         setPathItem={setPathItem}
-        setPaths={setPaths}
         setPointPosition={setPointPosition}
         setQuadraticPosition={setQuadraticPosition}
         setCubicPosition={setCubicPosition}
-        setPosition={setPosition}
       />
 
       <CanvasTools
         pathString={pathString}
-        canvasWidth={canvasWidth}
-        canvasHeight={canvasHeight}
-        gridSize={gridSize}
-        grid={grid}
-        setGrid={setGrid}
-        scale={scale}
-        setCanvasWidth={setCanvasWidth}
-        setCanvasHeight={setCanvasHeight}
-        setGridSize={setGridSize}
-        setPosition={setPosition}
-        setScale={setScale}
       />
 
       <PathTypeSetting
-        activePoint={activePoint}
         activePathItem={activePathItem}
         activePointItem={activePointItem}
         setPathItem={setPathItem}
