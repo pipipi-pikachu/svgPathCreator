@@ -7,7 +7,6 @@ export interface IndexModelState {
   scale: number;
   gridSize: number;
   grid: boolean;
-  closePath: boolean;
   activePointIndex: [number, number];
   canvasPosition: [number, number];
   paths: PathItem[];
@@ -29,7 +28,6 @@ const IndexModel: IndexModelType = {
     scale: 1,
     gridSize: 20,
     grid: true,
-    closePath: false,
     activePointIndex: [0, 0],
     canvasPosition: [0, 0],
     paths: [{

@@ -9,7 +9,6 @@ import { PathItem } from '@/types'
 
 export default function IndexPage() {
   const {
-    closePath,
     activePointIndex,
     paths,
   } = useSelector(({ index }: { index: IndexModelState }) => index)
@@ -32,7 +31,7 @@ export default function IndexPage() {
     }
 
     return _path
-  }, [paths, closePath])
+  }, [paths])
 
   const activePathItem = useMemo(() => {
     return paths[activePointIndex[0]]

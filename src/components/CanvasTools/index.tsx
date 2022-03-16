@@ -3,15 +3,17 @@ import { IndexModelState, useDispatch, useSelector } from 'umi'
 import { useSetState } from 'ahooks'
 import classNames from 'classnames'
 import { saveAs } from 'file-saver'
+import { CopyToClipboard } from "react-copy-to-clipboard";
 import style from './index.less'
 
-import { InputNumber, Modal, Checkbox } from 'antd'
+import { InputNumber, Modal, Checkbox, Tooltip, message } from 'antd'
 import {
   MinusOutlined,
   PlusOutlined,
   ExpandOutlined,
   DownloadOutlined,
   QuestionCircleOutlined,
+  CopyOutlined,
 } from '@ant-design/icons'
 
 interface CanvasToolsProps {
@@ -72,7 +74,18 @@ export default function CanvasTools(props: CanvasToolsProps) {
   }
 
   function exportSVGFile() {
-    const svg = `<svg viewBox="0 0 ${canvasWidth} ${canvasHeight}" width="${canvasWidth}" height="${canvasHeight}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="${pathString}"></path></svg>`
+    const svg = `
+      <svg 
+        viewBox="0 0 ${canvasWidth} ${canvasHeight}" 
+        width="${canvasWidth}" 
+        height="${canvasHeight}" 
+        version="1.1" 
+        xmlns="http://www.w3.org/2000/svg" 
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+      >
+        <path d="${pathString}" fill="none" stroke="#555" stroke-width="4px" ></path>
+      </svg>
+    `
 
     const blob = new Blob([svg], { type: '' });
     saveAs(blob, 'svg.svg')
@@ -82,30 +95,48 @@ export default function CanvasTools(props: CanvasToolsProps) {
     <>
       <div className={style.canvasTools}>
         宽 × 高：
-        <div className={style.canvasSize} onClick={() => setCanvasSizeSettingVisible(true)}>
-          {canvasWidth}
-          <span style={{ margin: '0 6px' }}>×</span>
-          {canvasHeight}
-        </div>
+        <Tooltip title="设置画布">
+          <div className={style.canvasSize} onClick={() => setCanvasSizeSettingVisible(true)}>
+            {canvasWidth}
+            <span style={{ margin: '0 6px' }}>×</span>
+            {canvasHeight}
+          </div>
+        </Tooltip>
 
-        <MinusOutlined className={classNames([style.icon, style.size])} onClick={reduceScale} />
+        <Tooltip title="缩小画布">
+          <MinusOutlined className={classNames([style.icon, style.size])} onClick={reduceScale} />
+        </Tooltip>
         {Math.round(scale * 100) + '%'}
-        <PlusOutlined className={classNames([style.icon, style.size])} onClick={increaseScale} />
+        <Tooltip title="放大画布">
+          <PlusOutlined className={classNames([style.icon, style.size])} onClick={increaseScale} />
+        </Tooltip>
 
-        <ExpandOutlined 
-          className={style.icon} 
-          onClick={() => {
-            dispatch({
-              type: 'index/save',
-              payload: { scale: 1 },
-            })
-            resetPosition()
-          }}
-        />
-
-        <DownloadOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={exportSVGFile} />
-
-        <QuestionCircleOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={() => setHelpVisible(true)} />
+        <Tooltip title="还原画布">
+          <ExpandOutlined 
+            className={style.icon} 
+            onClick={() => {
+              dispatch({
+                type: 'index/save',
+                payload: { scale: 1 },
+              })
+              resetPosition()
+            }}
+          />
+        </Tooltip>
+        
+        <Tooltip title="下载SVG文件">
+          <DownloadOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={exportSVGFile} />
+        </Tooltip>
+        
+        <CopyToClipboard text={pathString} onCopy={() => message.success('已复制到剪贴板')}>
+          <Tooltip title="复制SVG路径">
+            <CopyOutlined className={style.icon} style={{ fontSize: '16px' }} />
+          </Tooltip>
+        </CopyToClipboard>
+        
+        <Tooltip title="帮助">
+          <QuestionCircleOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={() => setHelpVisible(true)} />
+        </Tooltip>
       </div>
 
       <Modal 

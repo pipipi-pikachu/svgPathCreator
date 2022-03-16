@@ -229,8 +229,21 @@ export default function SVGEditor(props: SVGEditorProps) {
     })
   }
 
+  function removePath(index: number) {
+    dispatch({
+      type: 'index/save',
+      payload: {
+        paths: paths.filter((item, i) => i !== index),
+        activePointIndex: [0, 0],
+      },
+    })
+  }
+
   function removeActivePoint() {
-    if (activePointIndex[1] === 0) return
+    if (activePointIndex[1] === 0 && paths[activePointIndex[0]].points.length === 1) {
+      if (paths.length > 1) removePath(activePointIndex[0])
+      return
+    }
     const path = paths[activePointIndex[0]]
     const newPoints = path.points.filter((item, index) => index !== activePointIndex[1])
     const newPathItem = {
