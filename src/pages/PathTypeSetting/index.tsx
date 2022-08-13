@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { activePointIndexState, activePathItemState, activePointItemState } from '../../store'
-import { PathItem, PointItem } from '../../types'
+import { activePointIndexState, activePathItemState, activePointItemState } from '@/store'
+import { PathItem, PointItem } from '@/types'
 import style from './index.module.less'
 
 import { Radio, InputNumber, Divider, Checkbox } from 'antd'

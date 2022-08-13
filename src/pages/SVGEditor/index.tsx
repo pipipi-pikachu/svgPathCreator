@@ -15,8 +15,8 @@ import {
   activePathItemState,
   activePointItemState,
   pathStringState,
-} from '../../store'
-import { PathItem, PointItem, PointWithAnchorsItem } from '../../types'
+} from '@/store'
+import { PathItem, PointItem, PointWithAnchorsItem } from '@/types'
 import style from './index.module.less'
 
 import { Menu, Item, Separator, useContextMenu, ItemParams } from 'react-contexify'

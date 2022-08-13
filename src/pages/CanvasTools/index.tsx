@@ -15,8 +15,8 @@ import {
   canvasPositionState,
   pathStringState,
   activePathItemState,
-} from '../../store'
-import { PathItem } from '../../types'
+} from '@/store'
+import { PathItem } from '@/types'
 import style from './index.module.less'
 
 import { ChromePicker } from 'react-color'

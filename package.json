@@ -1,7 +1,8 @@
 {
-  "name": "my-app",
+  "name": "svg_path_creator",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
     "@craco/craco": "^7.0.0-alpha.7",
