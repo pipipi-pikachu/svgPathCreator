@@ -15,6 +15,8 @@ import {
   canvasPositionState,
   pathStringState,
   activePathItemState,
+  pathsState,
+  activePointIndexState,
 } from '@/store'
 import { PathItem } from '@/types'
 import style from './index.module.less'
@@ -29,6 +31,7 @@ import {
   QuestionCircleOutlined,
   CopyOutlined,
   StopOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 
 interface CanvasToolsProps {
@@ -44,6 +47,8 @@ export default function CanvasTools(props: CanvasToolsProps) {
   const [strokeWidth, setStrokeWidth] = useRecoilState(strokeWidthState)
   const [fill, setFill] = useRecoilState(fillState)
   const setCanvasPosition = useSetRecoilState(canvasPositionState)
+  const setPaths = useSetRecoilState(pathsState)
+  const setActivePointIndex = useSetRecoilState(activePointIndexState)
   const pathString = useRecoilValue(pathStringState)
   const activePathItem = useRecoilValue(activePathItemState)
 
@@ -99,6 +104,17 @@ export default function CanvasTools(props: CanvasToolsProps) {
     saveAs(blob, 'svg.svg')
   }
 
+  function clearPath() {
+    setActivePointIndex([0, 0])
+    setPaths([{
+      points: [{
+        x: 0,
+        y: 0,
+      }],
+      closePath: false,
+    }])
+  }
+
   const FillPopover = () => (
     <div>
       <Checkbox
@@ -138,7 +154,6 @@ export default function CanvasTools(props: CanvasToolsProps) {
   return (
     <>
       <div className={style.canvasTools}>
-        宽 × 高：
         <Tooltip title="设置画布">
           <div className={style.canvasSize} onClick={() => setCanvasSizeSettingVisible(true)}>
             {canvasSize.width}
@@ -183,6 +198,10 @@ export default function CanvasTools(props: CanvasToolsProps) {
         </Popover>
 
         <Divider type="vertical" />
+        
+        <Tooltip title="清空路径">
+          <DeleteOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={clearPath} />
+        </Tooltip>
         
         <Tooltip title="下载SVG文件">
           <DownloadOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={exportSVGFile} />
@@ -277,6 +296,7 @@ export default function CanvasTools(props: CanvasToolsProps) {
       >
         <p>网格上打开右键菜单：追加点或追加新路径；</p>
         <p>在网格中双击：在当前路径上追加一个点（直线连接）；</p>
+        <p>在网格中双击（按住 Ctrl键）：追加新路径；</p>
         <p>按下空格键拖拽网格：移动编辑区域；</p>
         <p>点击路径中的点：选中该点/路径；</p>
         <p>拖拽路径中的点：移动该点；</p>

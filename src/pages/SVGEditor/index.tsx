@@ -63,7 +63,7 @@ export default function SVGEditor(props: SVGEditorProps) {
       y: (scale - 1) * canvasSize.height / 2 / scale,
     }
   }, [scale, canvasSize])
-
+  
   const [svgFocus, setSvgFocus] = useState(false)
   useClickAway(() => {
     setSvgFocus(false)
@@ -72,6 +72,12 @@ export default function SVGEditor(props: SVGEditorProps) {
   const [draggedPoint, setDraggedPoint] = useState(false)
   const [draggedQuadratic, setDraggedQuadratic] = useState(false)
   const [draggedCubic, setDraggedCubic] = useState<false | 0 | 1>(false)
+  
+  const [ctrlKeyActive, setCtrlKeyActive] = useState(false)
+  useKeyPress('ctrl', e => {
+    if (e.type === 'keydown') setCtrlKeyActive(true)
+    if (e.type === 'keyup') setCtrlKeyActive(false)
+  }, { events: ['keydown', 'keyup'] })
 
   const [spaceKeyActive, setSpaceKeyActive] = useState(false)
   useKeyPress('space', e => {
@@ -261,7 +267,7 @@ export default function SVGEditor(props: SVGEditorProps) {
     setPathItem(newPathItem)
   }
 
-  useKeyPress('delete', () => {
+  useKeyPress(['delete', 'backspace'], () => {
     if (svgFocus) removeActivePoint()
   })
 
@@ -459,7 +465,10 @@ export default function SVGEditor(props: SVGEditorProps) {
             ref={svgRef} 
             width={canvasSize.width} 
             height={canvasSize.height} 
-            onDoubleClick={(e: MouseEvent) => addPoint(e)}
+            onDoubleClick={(e: MouseEvent) => {
+              if (ctrlKeyActive) addPath(e)
+              else addPoint(e)
+            }}
             style={{ transform: `scale(${scale}) translate(${svgOffset.x}px, ${svgOffset.y}px)` }}
           >
             <g className={style.grid}>
