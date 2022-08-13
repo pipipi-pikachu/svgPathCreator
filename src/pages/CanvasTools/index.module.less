@@ -15,6 +15,20 @@
     cursor: pointer;
     margin: 0 10px;
 
+    &.color {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .block {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
     &:last-child {
       margin-right: 0;
     }
@@ -24,7 +38,7 @@
     }
   }
   .canvasSize {
-    margin-right: 15px;
+    margin-right: 10px;
     cursor: pointer;
   }
 }
@@ -34,4 +48,7 @@
   .item + .item {
     margin-left: 20px;
   }
+}
+.colorPicker {
+  box-shadow: none !important;
 }

@@ -1,53 +1,19 @@
-import { useMemo } from 'react'
-import { useSelector, useDispatch, IndexModelState } from 'umi'
-import style from './index.less'
-import SVGEditor from '@/components/SVGEditor'
-import CanvasTools from '@/components/CanvasTools'
-import PathTypeSetting from '@/components/PathTypeSetting'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import { activePointIndexState, activePointItemState, pathsState } from '../store'
+import { PathItem } from '../types'
+import style from './App.module.less'
 
-import { PathItem } from '@/types'
+import SVGEditor from './SVGEditor'
+import CanvasTools from './CanvasTools'
+import PathTypeSetting from './PathTypeSetting'
 
-export default function IndexPage() {
-  const {
-    activePointIndex,
-    paths,
-  } = useSelector(({ index }: { index: IndexModelState }) => index)
-  const dispatch = useDispatch()
-
-  const pathString = useMemo(() => {
-    let _path = ''
-
-    for (const path of paths) {
-      path.points.forEach((point, index) => {
-        if (index === 0) _path += 'M '
-        else if (point.q) _path += `Q ${point.q.x} ${point.q.y} `
-        else if (point.c) _path += `C ${point.c[0].x} ${point.c[0].y} ${point.c[1].x} ${point.c[1].y} `
-        else if (point.a) _path += `A ${point.a.rx} ${point.a.ry} ${point.a.rot} ${point.a.laf} ${point.a.sf} `
-        else _path += 'L '
-        _path += `${point.x} ${point.y} `
-      })
-
-      if (path.closePath) _path += 'Z '
-    }
-
-    return _path
-  }, [paths])
-
-  const activePathItem = useMemo(() => {
-    return paths[activePointIndex[0]]
-  }, [paths, activePointIndex])
-
-  const activePointItem = useMemo(() => {
-    return activePathItem.points[activePointIndex[1]]
-  }, [activePathItem, activePointIndex])
+export default function App() {
+  const [paths, setPaths] = useRecoilState(pathsState)
+  const [activePointIndex] = useRecoilState(activePointIndexState)
+  const activePointItem = useRecoilValue(activePointItemState)
 
   function setPathItem(pathItem: PathItem) {
-    dispatch({
-      type: 'index/save',
-      payload: {
-        paths: paths.map((item, index) => activePointIndex[0] === index ? pathItem : item),
-      },
-    })
+    setPaths(paths.map((item, index) => activePointIndex[0] === index ? pathItem : item))
   }
 
   function setPointPosition(x: number, y: number) {
@@ -72,8 +38,9 @@ export default function IndexPage() {
     const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
       if (index === activePointIndex[1]) {
-        const c = item.c || []
-        c[anchor] = { x, y }
+        let c = item.c!
+        if (anchor === 1) c = [c[0], { x, y }]
+        else c = [{ x, y }, c[1]]
         return { ...item, c }
       }
       return item
@@ -99,16 +66,16 @@ export default function IndexPage() {
   }
 
   function inputArcParam(key: 'rx' | 'ry' | 'rot' | 'laf' | 'sf', value: number) {
-    if(key === 'rot') {
+    if (key === 'rot') {
       if(value < 0) value = 0
       if(value > 360) value = 360
     }
     const path = paths[activePointIndex[0]]
     const points = path.points.map((item, index) => {
       if (index === activePointIndex[1]) {
-        const a = item.a
+        let a = item.a!
         if (!a) return item
-        a[key] = value
+        a = { ...a, [key]: value }
         return { ...item, a }
       }
       return item
@@ -117,23 +84,17 @@ export default function IndexPage() {
   }
 
   return (
-    <div className={style.indexPage}>
+    <div className={style.app}>
       <SVGEditor
-        activePathItem={activePathItem}
-        pathString={pathString}
         setPathItem={setPathItem}
         setPointPosition={setPointPosition}
         setQuadraticPosition={setQuadraticPosition}
         setCubicPosition={setCubicPosition}
       />
 
-      <CanvasTools
-        pathString={pathString}
-      />
+      <CanvasTools setPathItem={setPathItem} />
 
       <PathTypeSetting
-        activePathItem={activePathItem}
-        activePointItem={activePointItem}
         setPathItem={setPathItem}
         inputPointPosition={inputPointPosition}
         inputQuadraticPosition={inputQuadraticPosition}

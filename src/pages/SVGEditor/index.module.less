@@ -27,9 +27,6 @@
   border: 1px solid #e5e5e5;
 
   .path {
-    fill: none;
-    stroke: #555;
-    stroke-width: 4px;
     stroke-linecap: round;
   }
   .grid {
@@ -42,6 +39,12 @@
     fill: #555;
     opacity: .35;
 
+    &.start {
+      stroke: #2b579b;
+      stroke-width: 4px;
+      fill: #fff;
+      opacity: 1;
+    }
     &.active {
       fill: #2b579b;
       opacity: 1;

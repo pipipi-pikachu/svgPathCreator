@@ -1,40 +1,53 @@
 import { MouseEvent, useMemo, useRef, useState } from 'react'
-import { IndexModelState, useDispatch, useSelector } from 'umi'
 import { useClickAway, useKeyPress } from 'ahooks'
 import classNames from 'classnames'
-import style from './index.less'
+import {
+  canvasSizeState,
+  scaleState,
+  gridSizeState,
+  gridEnabledState,
+  activePointIndexState,
+  canvasPositionState,
+  strokeColorState,
+  strokeWidthState,
+  fillState,
+  pathsState,
+  activePathItemState,
+  activePointItemState,
+  pathStringState,
+} from '../../store'
+import { PathItem, PointItem, PointWithAnchorsItem } from '../../types'
+import style from './index.module.less'
+
 import { Menu, Item, Separator, useContextMenu, ItemParams } from 'react-contexify'
 import 'react-contexify/dist/ReactContexify.css'
+import { useRecoilState, useRecoilValue } from 'recoil'
 
-const MENU_ID = 'blahblah';
-
-import { PathItem, PointItem, PointWithAnchorsItem } from '@/types'
+const MENU_ID = 'blahblah'
 
 interface SVGEditorProps {
-  activePathItem: PathItem;
-  pathString: string;
-  setPathItem: (pathItem: PathItem) => void;
-  setPointPosition: (x: number, y: number) => void;
-  setQuadraticPosition: (x: number, y: number) => void;
-  setCubicPosition: (x: number, y: number, anchor: 0 | 1) => void;
+  setPathItem: (pathItem: PathItem) => void
+  setPointPosition: (x: number, y: number) => void
+  setQuadraticPosition: (x: number, y: number) => void
+  setCubicPosition: (x: number, y: number, anchor: 0 | 1) => void
 }
 
 export default function SVGEditor(props: SVGEditorProps) {
-  const {
-    canvasWidth,
-    canvasHeight,
-    gridSize,
-    grid,
-    activePointIndex,
-    paths,
-    canvasPosition,
-    scale,
-  } = useSelector(({ index }: { index: IndexModelState }) => index)
-  const dispatch = useDispatch()
+  const [canvasSize] = useRecoilState(canvasSizeState)
+  const [gridSize] = useRecoilState(gridSizeState)
+  const [gridEnabled] = useRecoilState(gridEnabledState)
+  const [activePointIndex, setActivePointIndex] = useRecoilState(activePointIndexState)
+  const [paths, setPaths] = useRecoilState(pathsState)
+  const [canvasPosition, setCanvasPosition] = useRecoilState(canvasPositionState)
+  const [scale] = useRecoilState(scaleState)
+  const [strokeColor] = useRecoilState(strokeColorState)
+  const [strokeWidth] = useRecoilState(strokeWidthState)
+  const [fill] = useRecoilState(fillState)
+  const activePathItem = useRecoilValue(activePathItemState)
+  const activePointItem = useRecoilValue(activePointItemState)
+  const pathString = useRecoilValue(pathStringState)
 
   const {
-    activePathItem,
-    pathString,
     setPathItem,
     setPointPosition,
     setQuadraticPosition,
@@ -46,10 +59,10 @@ export default function SVGEditor(props: SVGEditorProps) {
 
   const svgOffset = useMemo(() => {
     return {
-      x: (scale - 1) * canvasWidth / 2 / scale,
-      y: (scale - 1) * canvasHeight / 2 / scale,
+      x: (scale - 1) * canvasSize.width / 2 / scale,
+      y: (scale - 1) * canvasSize.height / 2 / scale,
     }
-  }, [scale])
+  }, [scale, canvasSize])
 
   const [svgFocus, setSvgFocus] = useState(false)
   useClickAway(() => {
@@ -69,24 +82,24 @@ export default function SVGEditor(props: SVGEditorProps) {
   const gridLines = useMemo(() => {
     const lines = []
 
-    for (let i = 1; i < canvasWidth / gridSize; i++) {
+    for (let i = 1; i < canvasSize.width / gridSize; i++) {
       lines.push({
         x1: i * gridSize,
         y1: 0,
         x2: i * gridSize,
-        y2: canvasHeight
+        y2: canvasSize.height
       })
     }
-    for (let i = 1; i < canvasHeight / gridSize; i++) {
+    for (let i = 1; i < canvasSize.height / gridSize; i++) {
       lines.push({
         x1: 0,
         y1: i * gridSize,
-        x2: canvasWidth,
+        x2: canvasSize.width,
         y2: i * gridSize
       })
     }
     return lines
-  }, [gridSize, canvasWidth, canvasHeight])
+  }, [gridSize, canvasSize])
 
   const pathsPointsWidthAnchors = useMemo(() => {
     return paths.map(path => {
@@ -132,7 +145,7 @@ export default function SVGEditor(props: SVGEditorProps) {
     let x = Math.round(e.pageX - rect.left) / scale
     let y = Math.round(e.pageY - rect.top) / scale
 
-    if (grid) {
+    if (gridEnabled) {
       x = gridSize * Math.round(x / gridSize)
       y = gridSize * Math.round(y / gridSize)
     }
@@ -141,20 +154,23 @@ export default function SVGEditor(props: SVGEditorProps) {
   }
 
   function pushNewPoint(newPoint: PointItem) {
+    const isRepeat = activePointItem.x === newPoint.x && activePointItem.y === newPoint.y
+
     const path = paths[activePointIndex[0]]
-    const newPoints = [...path.points, newPoint]
+    const newPoints = [...path.points]
+
+    if (isRepeat) newPoints.push(newPoint)
+    else newPoints.splice(activePointIndex[1] + 1, 0, newPoint)
+
     const newPathItem = {
       ...path,
       points: newPoints,
     }
 
+    const newActivePointIndex = isRepeat ? newPoints.length - 1 : activePointIndex[1] + 1
+
     setPathItem(newPathItem)
-    dispatch({
-      type: 'index/save',
-      payload: {
-        activePointIndex: [activePointIndex[0], newPoints.length - 1],
-      },
-    })
+    setActivePointIndex([activePointIndex[0], newActivePointIndex])
   }
 
   function addPoint(e: MouseEvent) {
@@ -220,23 +236,13 @@ export default function SVGEditor(props: SVGEditorProps) {
       width: 4,
       fill: '#000',
     }
-    dispatch({
-      type: 'index/save',
-      payload: {
-        paths: [...paths, newPath],
-        activePointIndex: [paths.length, 0],
-      },
-    })
+    setPaths([...paths, newPath])
+    setActivePointIndex([paths.length, 0])
   }
 
   function removePath(index: number) {
-    dispatch({
-      type: 'index/save',
-      payload: {
-        paths: paths.filter((item, i) => i !== index),
-        activePointIndex: [0, 0],
-      },
-    })
+    setPaths(paths.filter((item, i) => i !== index))
+    setActivePointIndex([0, 0])
   }
 
   function removeActivePoint() {
@@ -251,12 +257,7 @@ export default function SVGEditor(props: SVGEditorProps) {
       points: newPoints,
     }
 
-    dispatch({
-      type: 'index/save',
-      payload: {
-        activePointIndex: [activePointIndex[0], newPoints.length - 1],
-      },
-    })
+    setActivePointIndex([activePointIndex[0], newPoints.length - 1])
     setPathItem(newPathItem)
   }
 
@@ -265,32 +266,17 @@ export default function SVGEditor(props: SVGEditorProps) {
   })
 
   function startDraggingPoint(position: [number, number]) {
-    dispatch({
-      type: 'index/save',
-      payload: {
-        activePointIndex: position,
-      },
-    })
+    setActivePointIndex(position)
     setDraggedPoint(true)
   }
 
   function startDraggedQuadratic(position: [number, number]) {
-    dispatch({
-      type: 'index/save',
-      payload: {
-        activePointIndex: position,
-      },
-    })
+    setActivePointIndex(position)
     setDraggedQuadratic(true)
   }
 
   function startDraggedCubic(position: [number, number], anchor: false | 0 | 1) {
-    dispatch({
-      type: 'index/save',
-      payload: {
-        activePointIndex: position,
-      },
-    })
+    setActivePointIndex(position)
     setDraggedCubic(anchor)
   }
 
@@ -333,12 +319,7 @@ export default function SVGEditor(props: SVGEditorProps) {
       const moveX = currentPageX - startPageX
       const moveY = currentPageY - startPageY
 
-      dispatch({
-        type: 'index/save',
-        payload: {
-          canvasPosition: [originLeft + moveX, originTop + moveY],
-        },
-      })
+      setCanvasPosition([originLeft + moveX, originTop + moveY])
     }
     document.onmouseup = () => {
       draggedSvg = false
@@ -346,8 +327,8 @@ export default function SVGEditor(props: SVGEditorProps) {
   }
 
   interface AnchorProps {
-    point: PointWithAnchorsItem;
-    position: [number, number];
+    point: PointWithAnchorsItem
+    position: [number, number]
   }
   function Anchor(props: AnchorProps) {
     const { point, position } = props
@@ -476,8 +457,8 @@ export default function SVGEditor(props: SVGEditorProps) {
           <svg 
             className={style.svg} 
             ref={svgRef} 
-            width={canvasWidth} 
-            height={canvasHeight} 
+            width={canvasSize.width} 
+            height={canvasSize.height} 
             onDoubleClick={(e: MouseEvent) => addPoint(e)}
             style={{ transform: `scale(${scale}) translate(${svgOffset.x}px, ${svgOffset.y}px)` }}
           >
@@ -489,7 +470,13 @@ export default function SVGEditor(props: SVGEditorProps) {
               }
             </g>
 
-            <path className={style.path} d={pathString}></path>
+            <path 
+              className={style.path} 
+              d={pathString}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fill={fill}
+            ></path>
 
             <g>
               {
@@ -503,7 +490,7 @@ export default function SVGEditor(props: SVGEditorProps) {
                         })}
                         cx={point.x}
                         cy={point.y}
-                        r={8}
+                        r={pointIndex === 0 ? 6 : 8}
                         onMouseDown={e => {
                           e.stopPropagation()
                           startDraggingPoint([pathIndex, pointIndex])

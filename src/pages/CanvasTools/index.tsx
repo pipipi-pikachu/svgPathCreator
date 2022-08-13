@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react'
-import { IndexModelState, useDispatch, useSelector } from 'umi'
 import { useSetState } from 'ahooks'
 import classNames from 'classnames'
 import { saveAs } from 'file-saver'
-import { CopyToClipboard } from "react-copy-to-clipboard";
-import style from './index.less'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
+import { useRecoilState, useSetRecoilState, useRecoilValue } from 'recoil'
+import {
+  canvasSizeState,
+  scaleState,
+  gridSizeState,
+  gridEnabledState,
+  strokeColorState,
+  strokeWidthState,
+  fillState,
+  canvasPositionState,
+  pathStringState,
+  activePathItemState,
+} from '../../store'
+import { PathItem } from '../../types'
+import style from './index.module.less'
 
-import { InputNumber, Modal, Checkbox, Tooltip, message } from 'antd'
+import { ChromePicker } from 'react-color'
+import { InputNumber, Modal, Checkbox, Tooltip, Divider, Popover, message, Slider } from 'antd'
 import {
   MinusOutlined,
   PlusOutlined,
@@ -14,82 +28,112 @@ import {
   DownloadOutlined,
   QuestionCircleOutlined,
   CopyOutlined,
+  StopOutlined,
 } from '@ant-design/icons'
 
 interface CanvasToolsProps {
-  pathString: string;
+  setPathItem: (pathItem: PathItem) => void
 }
 
 export default function CanvasTools(props: CanvasToolsProps) {
-  const {
-    canvasWidth,
-    canvasHeight,
-    gridSize,
-    grid,
-    scale,
-  } = useSelector(({ index }: { index: IndexModelState }) => index)
-  const dispatch = useDispatch()
+  const [canvasSize, setCanvasSize] = useRecoilState(canvasSizeState)
+  const [gridSize, setGridSize] = useRecoilState(gridSizeState)
+  const [gridEnabled, setGridEnabled] = useRecoilState(gridEnabledState)
+  const [scale, setScale] = useRecoilState(scaleState)
+  const [strokeColor, setStrokeColor] = useRecoilState(strokeColorState)
+  const [strokeWidth, setStrokeWidth] = useRecoilState(strokeWidthState)
+  const [fill, setFill] = useRecoilState(fillState)
+  const setCanvasPosition = useSetRecoilState(canvasPositionState)
+  const pathString = useRecoilValue(pathStringState)
+  const activePathItem = useRecoilValue(activePathItemState)
 
-  const { pathString } = props
+  const { setPathItem } = props
 
   const [configs, setConfigs] = useSetState({
     width: 0,
     height: 0,
     gridSize: 0,
-    grid: false,
+    gridEnabled: false,
   })
 
   useEffect(() => {
     setConfigs({
-      width: canvasWidth,
-      height: canvasHeight,
+      width: canvasSize.width,
+      height: canvasSize.height,
       gridSize,
-      grid,
+      gridEnabled,
     })
-  }, [canvasWidth, canvasHeight, gridSize, grid])
+  }, [canvasSize, gridSize, gridEnabled, setConfigs])
 
   const [canvasSizeSettingVisible, setCanvasSizeSettingVisible] = useState(false)
   const [helpVisible, setHelpVisible] = useState(false)
 
   function increaseScale() {
     const newScale = scale + 0.1 > 2 ? 2 : scale + 0.1
-    dispatch({
-      type: 'index/save',
-      payload: { scale: newScale },
-    })
+    setScale(newScale)
   }
   function reduceScale() {
     const newScale = scale - 0.1 < 0.5 ? 0.5 : scale - 0.1
-    dispatch({
-      type: 'index/save',
-      payload: { scale: newScale },
-    })
+    setScale(newScale)
   }
 
   function resetPosition() {
-    dispatch({
-      type: 'index/save',
-      payload: { canvasPosition: [0, 0] },
-    })
+    setCanvasPosition([0, 0])
   }
 
   function exportSVGFile() {
     const svg = `
       <svg 
-        viewBox="0 0 ${canvasWidth} ${canvasHeight}" 
-        width="${canvasWidth}" 
-        height="${canvasHeight}" 
+        viewBox="0 0 ${canvasSize.width} ${canvasSize.height}" 
+        width="${canvasSize.width}" 
+        height="${canvasSize.height}" 
         version="1.1" 
         xmlns="http://www.w3.org/2000/svg" 
         xmlns:xlink="http://www.w3.org/1999/xlink"
       >
-        <path d="${pathString}" fill="none" stroke="#555" stroke-width="4px" ></path>
+        <path d="${pathString}" stroke="${strokeColor}" stroke-width="${strokeWidth}" fill="${fill}"></path>
       </svg>
     `
 
-    const blob = new Blob([svg], { type: '' });
+    const blob = new Blob([svg], { type: '' })
     saveAs(blob, 'svg.svg')
   }
+
+  const FillPopover = () => (
+    <div>
+      <Checkbox
+        checked={fill !== 'none'}
+        onChange={e => {
+          if (e.target.checked) setFill(strokeColor)
+          else setFill('none')
+        }}
+      >打开路径填充</Checkbox>
+      <Divider />
+      <ChromePicker 
+        className={style.colorPicker} 
+        color={fill === 'none' ? '#fff' : fill}
+        onChangeComplete={color => setFill(color.hex)}
+      />
+    </div>
+  )
+  const StrokePopover = () => (
+    <div>
+      <Checkbox
+        checked={activePathItem.closePath}
+        onChange={e => {
+          setPathItem({ ...activePathItem, closePath: e.target.checked })
+        }}
+      >自动闭合路径</Checkbox>
+      <Divider />
+      <Slider min={1} max={12} value={strokeWidth} onChange={value => setStrokeWidth(value)} />
+      <Divider />
+      <ChromePicker 
+        className={style.colorPicker} 
+        color={strokeColor}
+        onChangeComplete={color => setStrokeColor(color.hex)}
+      />
+    </div>
+  )
 
   return (
     <>
@@ -97,9 +141,9 @@ export default function CanvasTools(props: CanvasToolsProps) {
         宽 × 高：
         <Tooltip title="设置画布">
           <div className={style.canvasSize} onClick={() => setCanvasSizeSettingVisible(true)}>
-            {canvasWidth}
+            {canvasSize.width}
             <span style={{ margin: '0 6px' }}>×</span>
-            {canvasHeight}
+            {canvasSize.height}
           </div>
         </Tooltip>
 
@@ -115,14 +159,30 @@ export default function CanvasTools(props: CanvasToolsProps) {
           <ExpandOutlined 
             className={style.icon} 
             onClick={() => {
-              dispatch({
-                type: 'index/save',
-                payload: { scale: 1 },
-              })
+              setScale(1)
               resetPosition()
             }}
           />
         </Tooltip>
+
+        <Divider type="vertical" />
+
+        <Popover content={StrokePopover} trigger="click">
+          <div className={classNames([style.icon, style.color])}>
+            路径：<div className={style.block} style={{ backgroundColor: strokeColor }}></div>
+          </div>
+        </Popover>
+
+        <Popover content={FillPopover} trigger="click">
+          <div className={classNames([style.icon, style.color])}>
+            填充：
+            <div className={style.block} style={{ backgroundColor: (fill === 'none' ? 'transparent' : fill), fontSize: '16px' }}>
+              { fill === 'none' ? <StopOutlined /> : null }
+            </div>
+          </div>
+        </Popover>
+
+        <Divider type="vertical" />
         
         <Tooltip title="下载SVG文件">
           <DownloadOutlined className={style.icon} style={{ fontSize: '16px' }} onClick={exportSVGFile} />
@@ -147,23 +207,20 @@ export default function CanvasTools(props: CanvasToolsProps) {
         visible={canvasSizeSettingVisible} 
         width={540}
         onOk={() => {
-          dispatch({
-            type: 'index/save',
-            payload: {
-              canvasWidth: configs.width,
-              canvasHeight: configs.height,
-              gridSize: configs.gridSize,
-              grid: configs.grid,
-            },
+          setCanvasSize({
+            width: configs.width,
+            height: configs.height,
           })
+          setGridSize(configs.gridSize)
+          setGridEnabled(configs.gridEnabled)
           setCanvasSizeSettingVisible(false)
         }} 
         onCancel={() => {
           setConfigs({
-            width: canvasWidth,
-            height: canvasHeight,
+            width: canvasSize.width,
+            height: canvasSize.height,
             gridSize,
-            grid,
+            gridEnabled,
           })
           setCanvasSizeSettingVisible(false)
         }}
@@ -202,8 +259,8 @@ export default function CanvasTools(props: CanvasToolsProps) {
               onChange={value => setConfigs({ gridSize: value })} 
             />
             <Checkbox
-              checked={configs.grid}
-              onChange={e => setConfigs({ grid: e.target.checked })} 
+              checked={configs.gridEnabled}
+              onChange={e => setConfigs({ gridEnabled: e.target.checked })} 
               style={{ marginLeft: '10px' }}
             >吸附</Checkbox>
           </div>
@@ -221,7 +278,7 @@ export default function CanvasTools(props: CanvasToolsProps) {
         <p>网格上打开右键菜单：追加点或追加新路径；</p>
         <p>在网格中双击：在当前路径上追加一个点（直线连接）；</p>
         <p>按下空格键拖拽网格：移动编辑区域；</p>
-        <p>点击路径中的点：选中该点；</p>
+        <p>点击路径中的点：选中该点/路径；</p>
         <p>拖拽路径中的点：移动该点；</p>
         <p>Delete / Backspace：删除选中的点（除路径起始点外）；</p>
         <p>右上角切换路径类型：更改选中的点与上一个点的连接方式，展开可查看和修改具体数据（除路径起始点外）；</p>
