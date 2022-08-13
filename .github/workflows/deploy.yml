@@ -25,4 +25,4 @@ jobs:
         with:
           github_token: ${{ secrets.SVGPATHCREATOR }}
           commit_message: deploy to github pages
-          publish_dir: ./dist
+          publish_dir: ./build
